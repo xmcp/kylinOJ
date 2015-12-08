@@ -40,14 +40,14 @@ class Kylin:
         self.log('=== waiting for gs')
         while True:
             try:
-                result=self._execute('judge',const.VM_JUDGE_PSW,'/bin/echo',['hello','world'],1000,100)
+                result=self._execute('judge',const.VM_JUDGE_PSW,'/bin/echo',['hello','world'],1000)
                 assert result[0]==0 and result[1].startswith('hello world') and not result[2]
             except (AssertionError,pywintypes.com_error):
                 time.sleep(.1)
             else:
                 break
 
-    def _execute(self,user,passwd,program,args,timeout,stdin=None):
+    def _execute(self,user,passwd,program,args,timeout=15000,stdin=None):
         def read_out():
             process.waitFor(7,0)
             o=process.read(1,65000,0).tobytes().decode('utf-8','ignore')
@@ -104,7 +104,15 @@ class Kylin:
                 handler.write(content.encode('utf-8','ignore'),1000)
 
     def pwn(self):
-        pass
+        self.log('=== writing judger')
+        with open('vm_files/judger.cpp','r') as f:
+            self._writefile('root',const.VM_ROOT_PSW,'/root/judger.cpp',f.read())
+
+        self.log('=== compiling judger')
+        errcode,out,err=self._execute('root',const.VM_ROOT_PSW,'/usr/bin/g++',['-static','-o','/root/judger','/root/judger.cpp'])
+        if errcode:
+            self.log('!!! errcode = %d'%errcode)
+            self.log('[STDOUT]\n%s\n[STDERR]\n%s'%(out,err))
 
     def restore(self):
         if self.session.state!=1:
@@ -125,5 +133,5 @@ if __name__=='__main__':
     kylin=Kylin(print)
     #kylin.restore()
     #kylin.pwn()
-    #xx=kylin._execute('root',const.VM_ROOT_PSW,'/bin/sleep',['1d'],3000)
-    xx=kylin._writefile('root',const.VM_ROOT_PSW,'/root/foo.bar','hello world!')
+    #xx=kylin._execute('root',const.VM_ROOT_PSW,'/home/judge/program',[],3000)
+    #xx=kylin._writefile('root',const.VM_ROOT_PSW,'/root/foo.bar','hello world!')
