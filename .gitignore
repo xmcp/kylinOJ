@@ -2,4 +2,5 @@
 __pycache__/
 *.pyc
 vm_files/SDKRef.pdf
+vm_files/vboxshell.py
 db.sqlite

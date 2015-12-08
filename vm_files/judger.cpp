@@ -1,21 +1,23 @@
 #include <sys/resource.h>
 #include <unistd.h>
 #include <cstdio>
-#include <errno.h>
 #include <cstdlib>
 
 inline void set(int what, int value) {
     rlimit limit;
     limit.rlim_cur=limit.rlim_max=value;
-    if(setrlimit(what,&limit)!=0) {
-        printf("[FAILED] errno = %d",errno);
-        throw -10087;
+    if(setrlimit(what,&limit)) {
+        fprintf(stderr,"[JUDGER ERROR] cannot set %d limit",what);
+        throw 1;
     }
 }
 
 int main(int argc, char *argv[]) {
     //argv[1]=mem_limit, argv[2]=time_limit
-    if(argc!=3) return -10086;
+    if(argc!=3) {
+        fprintf(stderr,"[JUDGER ERROR] bad argc");
+        return 1;
+    }
 
     set(RLIMIT_CPU,atoi(argv[2]));
     set(RLIMIT_NOFILE,0);
@@ -23,8 +25,14 @@ int main(int argc, char *argv[]) {
     set(RLIMIT_STACK,atoi(argv[1]));
     set(RLIMIT_NPROC,1);
 
-    char *args[]={(char*)"/program",NULL};
     chroot("/home/judge");
-    if(execv("/program",args))
-        return -10088;
+    if(setuid(/*JUDGE_UID*/)) {
+        fprintf(stderr,"[JUDGER ERROR] cannot setuid");
+        return 1;
+    }
+    char *args[]={(char*)"/program",NULL};
+    if(execv("/program",args)) {
+        fprintf(stderr,"[JUDGER ERROR] cannot execute program");
+        return 1;
+    }
 }
