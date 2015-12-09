@@ -1,0 +1,35 @@
+<%inherit file='base.html' />
+<%block name='title'>KylinOJ</%block>
+
+<style>
+  .half {width: calc(50% - 2px); display: inline-block; text-align: center;}
+  .sub-btn {margin: 10px 0 10px;}
+</style>
+
+<div class="row">
+  <div class="col-md-8"><div class="panel panel-default"><div class="panel-body">
+    <div class="page-header yahei">
+      <h1>
+        <a href="/problem"><span class="glyphicon glyphicon-circle-arrow-left"></span></a>
+        &nbsp;${probtitle|h}&nbsp;&nbsp;<small>${subtitle|h}</small>
+      </h1>
+    </div>
+    <div class="yahei">${description}</div>
+  </div></div></div>
+
+  <div class="col-md-4"><div class="panel panel-default"><div class="panel-body">
+    <div class="full-width">
+      <span class="half"><span class="glyphicon glyphicon-inbox"></span>&nbsp;内存限制 ${memory} MB</span>
+      <span class="half"><span class="glyphicon glyphicon-time"></span>&nbsp;时间限制 ${time} 秒</span>
+    </div>
+    <br />
+    <div class="full-width">
+      <span class="half">${alluser} 人尝试</span>
+      <span class="half">${acuser} 人通过</span>
+    </div>
+    <br />
+    <button type="button" class="btn btn-primary full-width sub-btn">提交代码</button>
+    <button type="button" class="btn btn-default full-width sub-btn">状态</button>
+    <button type="button" class="btn btn-default full-width sub-btn">统计</button>
+  </div></div></div>
+</div>

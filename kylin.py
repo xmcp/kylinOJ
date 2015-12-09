@@ -8,6 +8,7 @@ os.chdir(os.path.split(__file__)[0])
 
 import const
 import time
+import threading
 import vboxapi
 import pywintypes
 from contextlib import closing
@@ -17,8 +18,6 @@ def wait(sth):
         sth.waitForCompletion(-1)
 
 class Result:
-    def __init__(self): pass #fuck PyCharm
-
     CE='Compile Error'
     RE='Runtime Error'
     LE='Limit Excedded'
@@ -30,15 +29,17 @@ class Result:
 class Kylin:
     mgr=vboxapi.VirtualBoxManager()
     vbox=mgr.vbox
-    vm=vbox.findMachine(const.VM_NAME)
 
-    def __init__(self,log):
+    def __init__(self,vm_name,log):
         self.log=log
+        self.vm_name=vm_name
         self.log('=== initializing')
+        self.vm=self.vbox.findMachine(vm_name)
         self.session=self.mgr.getSessionObject(self.vbox)
+        self.running=False
 
     def _boot(self):
-        self.vm=self.vbox.findMachine(const.VM_NAME)
+        self.vm=self.vbox.findMachine(self.vm_name)
         self.session=self.mgr.getSessionObject(self.vbox)
         self.log('  === launching')
         while True:
@@ -115,18 +116,18 @@ class Kylin:
             with closing(gs.fileOpen(filename,2,4,0x755)) as handler:
                 handler.write(content.encode('utf-8','ignore'),1000)
 
-    def pwn(self): #todo: raise SB if SBed
-        self.log('=== writing judger')
-        with open('vm_files/judger.cpp','r') as f:
-            self._writefile('root',const.VM_ROOT_PSW,'/root/judger.cpp',f.read().replace('/*JUDGE_UID*/',const.VM_JUDGE_UID))
-
-        self.log('=== compiling judger')
-        code,out,err=self._execute('root',const.VM_ROOT_PSW,'/usr/bin/g++',['-static','-o','/root/judger','/root/judger.cpp'])
-        if code:
-            self.log('!!! errcode = %d'%code)
-            self.log('[STDOUT]\n%s\n[STDERR]\n%s'%(out,err))
-
     def restore(self):
+        def _pwn():
+            self.log('  === writing judger')
+            with open('vm_files/judger.cpp','r') as f:
+                self._writefile('root',const.VM_ROOT_PSW,'/root/judger.cpp',f.read().replace('/*JUDGE_UID*/',const.VM_JUDGE_UID))
+
+            self.log('  === compiling judger')
+            code,out,err=self._execute('root',const.VM_ROOT_PSW,'/usr/bin/g++',['-o','/root/judger','/root/judger.cpp'])
+            if code:
+                self.log('!!! errcode = %d'%code)
+                self.log('[STDOUT]\n%s\n[STDERR]\n%s'%(out,err))
+
         if self.session.state!=1:
             self.log('=== powering down')
             wait(self.session.console.powerDown())
@@ -144,24 +145,33 @@ class Kylin:
         while self.session.state!=1:
             time.sleep(.1)
         self._boot()
+        _pwn()
 
-    def judge(self,source,memlimit,timelimit,datas):
+    def _real_judge(self,source,memlimit,timelimit,datas,callback):
         results=[]
+        callback({'progress':'init'})
+        self.restore()
         try:
             self.log('=== copying user program')
             self._writefile('judge',const.VM_JUDGE_PSW,'/home/judge/program.cpp',source)
+
+            callback({'progress':'compiling'})
             self.log('=== compiling')
             code,out,err=self._execute('judge',const.VM_JUDGE_PSW,'/usr/bin/g++',['-static','-o','/home/judge/program','/home/judge/program.cpp'])
             if code:
                 self.log('!!! errcode = %d'%code)
                 self.log('[STDOUT]\n%s\n[STDERR]\n%s'%(out,err))
-                return [Result.CE]
+                return callback({'progress':'done','result':[Result.CE]})
 
             len_datas=len(datas)
             for pos,io in enumerate(datas):
+                callback({'progress':'judging','result':results})
                 self.log('=== judging data %d/%d'%(pos+1,len_datas))
+
                 code,out,err=self._execute('root',const.VM_ROOT_PSW,'/root/judger',[memlimit*1024*1024,timelimit],timelimit+1,io[0])
-                self.log('[ERRCODE] %d\n[STDOUT]\n%s\n[STDERR]\n%s'%(code,out,err))
+                if const.DEBUG:
+                    self.log('[ERRCODE] %d\n[STDOUT]\n%s\n[STDERR]\n%s'%(code,out,err))
+
                 if code and err.startswith('[JUDGER ERROR] '):
                     results.append(Result.SB)
                 elif code:
@@ -176,17 +186,45 @@ class Kylin:
                     results.append(Result.WA)
         except Exception as e:
             self.log('!!! Uncaught Error: %r'%e)
-            return results+[Result.SB]
+            return callback({'progress':'done','result':results+[Result.SB]})
         else:
-            return results
+            return callback({'progress':'done','result':results})
         finally:
-            self.restore()
+            self.running=False
 
+    def judge(self,*args):
+        self.running=True
+        threading.Thread(target=self._real_judge,args=args).start()
+
+class MultiKylin:
+    def __init__(self,log):
+        log('= initializing kylins')
+        self.kylins=[Kylin(name,log) for name in const.VMS]
+
+    def judge(self,*args):
+        while True:
+            for kylin in self.kylins:
+                if not kylin.running:
+                    return kylin.judge(*args)
+            time.sleep(.25)
 
 if __name__=='__main__':
-    kylin=Kylin(print)
-    kylin.restore()
-    kylin.pwn()
+    lock=threading.Lock()
+    def wrapper(cnt):
+        def callback(data):
+            with lock:
+                print('[%d] %s'%(cnt,data))
+
+        return callback
+
+    kylin=MultiKylin(print if const.DEBUG else lambda *_:None)
     #xx=kylin._execute('root',const.VM_ROOT_PSW,'/bin/echo',['foo','bar'],30)
     #xx=kylin._writefile('root',const.VM_ROOT_PSW,'/root/foo.bar','hello world!')
-    xx=kylin.judge('#include<cstdio>\nint main(){int a,b;scanf("%d%d",&a,&b);printf("%d",a+b);}',10,1,[['1 2','3'],['4 5','9']])
+    for _ in range(3):
+        kylin.judge(
+            '#include<cstdio>\nint main(){int a,b;scanf("%d%d",&a,&b);printf("%d",a+b);}',
+            10, #mem MB
+            1, #time second
+            [['1 2','3'],['4 5','9']], #datas
+            wrapper(_)
+        )

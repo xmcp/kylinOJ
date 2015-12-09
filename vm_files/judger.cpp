@@ -3,12 +3,12 @@
 #include <cstdio>
 #include <cstdlib>
 
-inline void set(int what, int value) {
+inline void lim(int what, int value) {
     rlimit limit;
     limit.rlim_cur=limit.rlim_max=value;
     if(setrlimit(what,&limit)) {
         fprintf(stderr,"[JUDGER ERROR] cannot set %d limit",what);
-        throw 1;
+        exit(1);
     }
 }
 
@@ -19,13 +19,16 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    set(RLIMIT_CPU,atoi(argv[2]));
-    set(RLIMIT_NOFILE,0);
-    set(RLIMIT_AS,atoi(argv[1]));
-    set(RLIMIT_STACK,atoi(argv[1]));
-    set(RLIMIT_NPROC,1);
+    lim(RLIMIT_CPU,atoi(argv[2]));
+    lim(RLIMIT_NOFILE,0);
+    lim(RLIMIT_AS,atoi(argv[1]));
+    lim(RLIMIT_STACK,atoi(argv[1]));
+    lim(RLIMIT_NPROC,1);
 
-    chroot("/home/judge");
+    if(chroot("/home/judge")) {
+        fprintf(stderr,"[JUDGER ERROR] cannot chroot");
+        return 1;
+    }
     if(setuid(/*JUDGE_UID*/)) {
         fprintf(stderr,"[JUDGER ERROR] cannot setuid");
         return 1;
@@ -35,4 +38,5 @@ int main(int argc, char *argv[]) {
         fprintf(stderr,"[JUDGER ERROR] cannot execute program");
         return 1;
     }
+    return 1; //should never happen
 }

@@ -1,0 +1,16 @@
+<%inherit file='base.html' />
+<%block name='title'>KylinOJ</%block>
+
+<div class="jumbotron">
+  <h1 class="yahei">${e|h}</h1>
+  <p>出现了一个错误，导致服务器无法处理这个请求。</p>
+  <p>
+    <button onclick="history.go(-1);" class="btn btn-danger btn-lg" role="button">
+      <span class="glyphicon glyphicon-chevron-left"></span>&nbsp;返回
+    </button>
+    &nbsp;&nbsp;
+    <button onclick="location.reload();" class="btn btn-danger btn-lg" role="button">
+      <span class="glyphicon glyphicon-refresh"></span>&nbsp;刷新
+    </button>
+  </p>
+</div>

@@ -1,0 +1,59 @@
+<%inherit file='base.html' />
+<%block name='title'>KylinOJ</%block>
+
+<script>
+  function navigate() {
+    var topage=prompt('跳转到页面（1 - ${pages}）','${curpage}');
+    if(topage) {
+      $('#hidden-page-value').val(topage);
+      $('#hidden-page-form').submit();
+    }
+  }
+</script>
+
+<div class="panel panel-default"><div class="panel-body">
+  <table class="table table-hover">
+    <thead>
+      <tr>
+        <th>编号</th>
+        <th>标题</th>
+        <th>提交人数</th>
+        <th>通过人数</th>
+      </tr>
+    </thead>
+    <tbody>
+      %for problem in problems:
+        <tr onclick="location.href='/problem/${problem['id']}'">
+          <td>${problem['id']}</td>
+          <td><a href="/problem/${problem['id']}">
+            ${problem['title']|h}&nbsp;&nbsp;&nbsp;<small class="small">${problem['subtitle']|h}</small>
+          </a></td>
+          <td>${problem['alluser']}</td>
+          <td>
+            ${problem['acuser']}
+            %if problem['alluser']:
+              &nbsp;(${'%.0f'%(100*problem['acuser']/problem['alluser'])}%)
+            %endif
+          </td>
+        </tr>
+      %endfor
+    </tbody>
+  </table>
+</div></div>
+
+<nav style="text-align: center;">
+  <ul class="pagination">
+    <li><a href="?page=1"><span class="glyphicon glyphicon-backward"></span>&nbsp;&nbsp;第 1 页</a></li>
+    %if curpage>1:
+      <li><a href="?page=${curpage-1}"><span class="glyphicon glyphicon-step-backward"></span>&nbsp;&nbsp;上一页</a></li>
+    %endif
+    <li class="active">
+      <a href="#" onclick="navigate()">${curpage} / ${pages} 页</a>
+    </li>
+    %if curpage<pages:
+      <li><a href="?page=${curpage+1}">下一页&nbsp;&nbsp;<span class="glyphicon glyphicon-step-forward"></span></a></li>
+    %endif
+    <li><a href="?page=${pages}">第 ${pages} 页&nbsp;&nbsp;<span class="glyphicon glyphicon-forward"></span></a></li>
+  </ul>
+</nav>
+
