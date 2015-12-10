@@ -9,6 +9,7 @@ import sqlite3
 import hashlib
 import math
 import markdown
+
 lookup_=TemplateLookup(directories=['templates'],input_encoding='utf-8',output_encoding='utf-8')
 def lookup(name):
     class _sub:
@@ -18,6 +19,12 @@ def lookup(name):
                 session=cherrypy.session, uri=cherrypy.request.path_info, **_
             )
     return _sub
+
+def post_only():
+    if cherrypy.request.method.upper()!='POST':
+        cherrypy.response.headers['Allow']='POST'
+        raise cherrypy.HTTPError(405)
+cherrypy.tools.post=cherrypy.Tool('on_start_resource',post_only)
 
 def err(e):
     return lookup('err.html').render(e=e)
@@ -35,21 +42,25 @@ class Website:
         if problemid is None:
             cur.execute('select count(*) from problems')
             count,*_=cur.fetchone()
-            pages=math.ceil(count/50)
+            pages=math.ceil(count/20)
             if page>pages or page<=0:
-                return err('页码范围错误')
+                return err('页码范围不正确')
 
-            cur.execute('select id,title,subtitle,acuser,alluser from problems order by id asc limit ?,50',[(page-1)*50])
+            cur.execute('select id,title,subtitle,acuser,alluser from problems order by id asc limit ?,20',[(page-1)*20])
             result=[]
             for problemid,title,subtitle,acuser,alluser in cur.fetchall():
                 result.append({'id':problemid,'title':title,'subtitle':subtitle,'acuser':acuser,'alluser':alluser})
             return lookup('problem_list.html').render(problems=result,curpage=page,pages=pages)
         else:
             cur.execute('select title,subtitle,acuser,alluser,description,memory,time from problems where id=?',[problemid])
-            title,subtitle,acuser,alluser,description,memory,allowtime=cur.fetchone()
-            html=markdown.markdown(description,output_format='html5',lazy_ol=False)
-            return lookup('problem.html').render(probtitle=title,subtitle=subtitle,acuser=acuser,alluser=alluser,\
-                description=html,memory=memory,time=allowtime)
+            result=cur.fetchone()
+            if result:
+                title,subtitle,acuser,alluser,description,memory,allowtime=result
+                html=markdown.markdown(description,output_format='html5',lazy_ol=False)
+                return lookup('problem.html').render(probtitle=title,subtitle=subtitle,acuser=acuser,alluser=alluser,
+                    description=html,memory=memory,time=allowtime,id_=problemid)
+            else:
+                raise cherrypy.NotFound()
 
     @cherrypy.expose()
     def login(self,username=None,password=None):
@@ -63,7 +74,7 @@ class Website:
             db=sqlite3.connect(const.DBFILE)
             cur=db.cursor()
             cur.execute('select exists(select * from users where username=?)',[username])
-            return '登录' if cur.fetchone()[0] else '注册'
+            return 'login' if cur.fetchone()[0] else 'register'
         else:
             db=sqlite3.connect(const.DBFILE)
             cur=db.cursor()
@@ -74,7 +85,7 @@ class Website:
                     cherrypy.session['username']=username
                     raise cherrypy.HTTPRedirect('/')
                 else:
-                    return err('密码错误')
+                    return err('密码不正确')
             else: #signup
                 cur.execute('insert into users values (?,?)',[username,ha(username,password)])
                 db.commit()
@@ -82,10 +93,18 @@ class Website:
                 raise cherrypy.HTTPRedirect('/')
 
     @cherrypy.expose()
+    @cherrypy.tools.post()
     def logout(self):
         if 'username' in cherrypy.session:
             del cherrypy.session['username']
         raise cherrypy.HTTPRedirect('/')
+
+    @cherrypy.expose()
+    @cherrypy.tools.post()
+    def submit(self,problemid,code):
+        if 'username' not in cherrypy.session:
+            raise cherrypy.HTTPRedirect('/login')
+        return code #todo
 
 
 cherrypy.quickstart(Website(),'/',{
@@ -94,6 +113,7 @@ cherrypy.quickstart(Website(),'/',{
         #'request.show_tracebacks': False,
         'server.socket_host':'0.0.0.0',
         'server.socket_port':1243,
+        'error_page.404': lambda status,message,traceback,version:err(status),
     },
     '/': {
         'tools.gzip.on': True,

@@ -4,17 +4,29 @@
 <script>
   $(function(){
     var username=$('#username');
+    var magic_btn=$('#magic-btn');
+    var lastuser=null;
     username.on('blur',function(){
       if(username.val().trim())
         $.post('/login',{username:username.val()},function(data) {
-          if (data.length < 10) {
-            $('#magic-title').text(data + ' KylinOJ');
-            $('#magic-btn').text(data).removeClass('btn-default').addClass('btn-primary').removeAttr('disabled');
+          if (data.length<20) {
+            if(data.startsWith('reg')) {
+              $('#magic-title').text('欢迎加入 KylinOJ');
+              magic_btn.text('注册').removeClass('btn-default btn-primary').addClass('btn-success');
+            } else {
+              $('#magic-title').text('欢迎回来，'+username.val());
+              magic_btn.text('登录').removeClass('btn-default btn-success').addClass('btn-primary');
+            }
+            if(lastuser!==username.val())
+              magic_btn.animate({marginLeft: '20px'},50,function() {
+                $(this).animate({marginLeft: '0'},50);
+              });
+            lastuser=username.val();
           }
         });
       else {
         $('#magic-title').text('欢迎新老用户');
-        $('#magic-btn').text('登录 或 注册').removeClass('btn-primary').addClass('btn-default').attr('disabled','disabled');
+        $('#magic-btn').text('登录 或 注册').removeClass('btn-primary').addClass('btn-default');
       }
     })
   });
@@ -24,10 +36,10 @@
   <div class="page-header yahei"><h1 id="magic-title">
     欢迎新老用户
   </h1></div>
-  <form action="/login" method="post" class="col-md-6 col-md-offset-3">
+  <form action="/login" method="post" class="col-sm-6 col-sm-offset-3">
     <div class="input-group">
       <span class="input-group-addon"><span class="glyphicon glyphicon-user"></span></span>
-      <input type="text" name="username" id="username" required="required" class="form-control" placeholder="用户名">
+      <input type="text" name="username" id="username" required="required" class="form-control" autofocus="autofocus" placeholder="用户名">
     </div>
     <br />
     <div class="input-group">
@@ -35,6 +47,6 @@
       <input type="password" name="password" required="required" class="form-control" placeholder="密码">
     </div>
     <br />
-    <button type="submit" id="magic-btn" class="btn btn-default full-width" disabled="disabled">登录 或 注册</button>
+    <button type="submit" id="magic-btn" class="btn btn-default full-width">登录 或 注册</button>
   </form>
 </div>

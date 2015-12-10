@@ -37,13 +37,22 @@
         update();
       });
     });
+    function quickjump() {
+      do {
+        var to=prompt('跳转到题号');
+        if (to&&!isNaN(+to)) {
+          window.location.href = '/problem/' + (+to);
+          return;
+        }
+      } while(to);
+    }
   </script>
 </head>
 <body><div class="container">
   <nav class="navbar navbar-default">
     <div class="container-fluid">
       <div class="pull-right">
-        <span id="battery-status" class="text-info"></span>
+        <span id="battery-status" class="text-info hidden-xs"></span>
         &nbsp;&nbsp;
         %if 'username' not in session:
           <a href="/login" class="btn btn-primary ${route('/login')}">
@@ -56,8 +65,8 @@
             </button>
           </form>
         %endif
-        <a class="btn btn-default navbar-btn"><!-- todo: add jump js -->
-          <span class="glyphicon glyphicon-map-marker"></span>&nbsp;快速跳转
+        <a class="btn btn-default navbar-btn" onclick="quickjump()">
+          <span class="glyphicon glyphicon-map-marker"></span><span class="hidden-xs">&nbsp;快速跳转</span>
         </a>
       </div>
       <div class="navbar-header">

@@ -4,7 +4,14 @@
 <style>
   .half {width: calc(50% - 2px); display: inline-block; text-align: center;}
   .sub-btn {margin: 10px 0 10px;}
+  #editor {height: 300px;}
 </style>
+<script>
+  function real_submit() {
+    $('#real-code').val(editor.getValue());
+    $('#real-form').submit();
+  }
+</script>
 
 <div class="row">
   <div class="col-md-8"><div class="panel panel-default"><div class="panel-body">
@@ -27,16 +34,16 @@
     </div>
     <br />
     %if 'username' in session:
+      <button type="button" class="btn btn-primary btn-lg full-width sub-btn" data-toggle="modal" data-target="#submit-modal" data-backdrop="static">
+        <span class="glyphicon glyphicon-cloud-upload"></span>&nbsp;&nbsp;提交代码
+      </button>
       %if session['username']=='admin':
         <button type="button" class="btn btn-warning full-width sub-btn">
           <span class="glyphicon glyphicon-pencil"></span>&nbsp;&nbsp;编辑题目
         </button>
       %endif
-      <button type="button" class="btn btn-primary full-width sub-btn">
-        <span class="glyphicon glyphicon-cloud-upload"></span>&nbsp;&nbsp;提交代码
-      </button>
     %else:
-      <a href="/login" class="btn btn-primary full-width sub-btn">登录后方可提交代码</a>
+      <a href="/login" class="btn btn-primary btn-lg full-width sub-btn">登录后方可提交代码</a>
     %endif
     <button type="button" class="btn btn-default full-width sub-btn">
       <span class="glyphicon glyphicon-filter"></span>&nbsp;&nbsp;状态
@@ -46,3 +53,39 @@
     </button>
   </div></div></div>
 </div>
+
+<div class="modal fade" id="submit-modal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+      <h4 class="modal-title">提交代码 到 ${probtitle|h}</h4>
+    </div>
+    <div class="modal-body">
+      <pre id="editor"></pre>
+    </div>
+    <div class="modal-footer">
+      <form action="/submit/${id_}" method="post" target="_blank" id="real-form">
+        <input type="hidden" name="code" id="real-code">
+        <button type="button" onclick="real_submit()" class="btn btn-primary">
+          <span class="glyphicon glyphicon-send"></span>&nbsp;提交
+        </button>
+      </form>
+    </div>
+</div></div></div>
+
+<script src="/static/ace/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="/static/ace/ext-language_tools.js"></script>
+<script>
+    ace.require("ace/ext/language_tools");
+    var editor = ace.edit("editor");
+    editor.setTheme("ace/theme/xcode");
+    editor.session.setMode("ace/mode/c_cpp");
+    editor.setOptions({
+        enableBasicAutocompletion: true,
+        enableSnippets: false,
+        enableLiveAutocompletion: false
+    });
+    $(window).on('beforeunload',function() {
+      if(editor.getValue().trim())
+        return "您编辑的代码还没有提交，离开此页面将放弃这些代码！";
+    });
+</script>

@@ -26,7 +26,8 @@
         <tr onclick="location.href='/problem/${problem['id']}'">
           <td>${problem['id']}</td>
           <td><a href="/problem/${problem['id']}">
-            ${problem['title']|h}&nbsp;&nbsp;&nbsp;<small class="small">${problem['subtitle']|h}</small>
+            ${problem['title']|h}&nbsp;&nbsp;&nbsp;
+            <small class="small">${problem['subtitle'] if problem['subtitle'] else ''|h}</small>
           </a></td>
           <td>${problem['alluser']}</td>
           <td>
@@ -43,8 +44,8 @@
 
 <nav style="text-align: center;">
   <ul class="pagination">
-    <li><a href="?page=1"><span class="glyphicon glyphicon-backward"></span>&nbsp;&nbsp;第 1 页</a></li>
     %if curpage>1:
+      <li><a href="?page=1"><span class="glyphicon glyphicon-backward"></span>&nbsp;&nbsp;第 1 页</a></li>
       <li><a href="?page=${curpage-1}"><span class="glyphicon glyphicon-step-backward"></span>&nbsp;&nbsp;上一页</a></li>
     %endif
     <li class="active">
@@ -52,8 +53,8 @@
     </li>
     %if curpage<pages:
       <li><a href="?page=${curpage+1}">下一页&nbsp;&nbsp;<span class="glyphicon glyphicon-step-forward"></span></a></li>
+      <li><a href="?page=${pages}">第 ${pages} 页&nbsp;&nbsp;<span class="glyphicon glyphicon-forward"></span></a></li>
     %endif
-    <li><a href="?page=${pages}">第 ${pages} 页&nbsp;&nbsp;<span class="glyphicon glyphicon-forward"></span></a></li>
   </ul>
 </nav>
 
