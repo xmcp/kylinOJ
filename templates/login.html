@@ -1,0 +1,40 @@
+<%inherit file='base.html' />
+<%block name='title'>KylinOJ</%block>
+
+<script>
+  $(function(){
+    var username=$('#username');
+    username.on('blur',function(){
+      if(username.val().trim())
+        $.post('/login',{username:username.val()},function(data) {
+          if (data.length < 10) {
+            $('#magic-title').text(data + ' KylinOJ');
+            $('#magic-btn').text(data).removeClass('btn-default').addClass('btn-primary').removeAttr('disabled');
+          }
+        });
+      else {
+        $('#magic-title').text('欢迎新老用户');
+        $('#magic-btn').text('登录 或 注册').removeClass('btn-primary').addClass('btn-default').attr('disabled','disabled');
+      }
+    })
+  });
+</script>
+
+<div class="panel panel-default"><div class="panel-body">
+  <div class="page-header yahei"><h1 id="magic-title">
+    欢迎新老用户
+  </h1></div>
+  <form action="/login" method="post" class="col-md-6 col-md-offset-3">
+    <div class="input-group">
+      <span class="input-group-addon"><span class="glyphicon glyphicon-user"></span></span>
+      <input type="text" name="username" id="username" required="required" class="form-control" placeholder="用户名">
+    </div>
+    <br />
+    <div class="input-group">
+      <span class="input-group-addon"><span class="glyphicon glyphicon-tree-conifer"></span></span>
+      <input type="password" name="password" required="required" class="form-control" placeholder="密码">
+    </div>
+    <br />
+    <button type="submit" id="magic-btn" class="btn btn-default full-width" disabled="disabled">登录 或 注册</button>
+  </form>
+</div>

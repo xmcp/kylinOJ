@@ -8,12 +8,10 @@
 
 <div class="row">
   <div class="col-md-8"><div class="panel panel-default"><div class="panel-body">
-    <div class="page-header yahei">
-      <h1>
+    <div class="page-header yahei"><h1>
         <a href="/problem"><span class="glyphicon glyphicon-circle-arrow-left"></span></a>
         &nbsp;${probtitle|h}&nbsp;&nbsp;<small>${subtitle|h}</small>
-      </h1>
-    </div>
+    </h1></div>
     <div class="yahei">${description}</div>
   </div></div></div>
 
@@ -28,8 +26,23 @@
       <span class="half">${acuser} 人通过</span>
     </div>
     <br />
-    <button type="button" class="btn btn-primary full-width sub-btn">提交代码</button>
-    <button type="button" class="btn btn-default full-width sub-btn">状态</button>
-    <button type="button" class="btn btn-default full-width sub-btn">统计</button>
+    %if 'username' in session:
+      %if session['username']=='admin':
+        <button type="button" class="btn btn-warning full-width sub-btn">
+          <span class="glyphicon glyphicon-pencil"></span>&nbsp;&nbsp;编辑题目
+        </button>
+      %endif
+      <button type="button" class="btn btn-primary full-width sub-btn">
+        <span class="glyphicon glyphicon-cloud-upload"></span>&nbsp;&nbsp;提交代码
+      </button>
+    %else:
+      <a href="/login" class="btn btn-primary full-width sub-btn">登录后方可提交代码</a>
+    %endif
+    <button type="button" class="btn btn-default full-width sub-btn">
+      <span class="glyphicon glyphicon-filter"></span>&nbsp;&nbsp;状态
+    </button>
+    <button type="button" class="btn btn-default full-width sub-btn">
+      <span class="glyphicon glyphicon-sort-by-attributes-alt"></span>&nbsp;&nbsp;统计
+    </button>
   </div></div></div>
 </div>

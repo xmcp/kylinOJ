@@ -44,12 +44,13 @@
     <div class="container-fluid">
       <div class="pull-right">
         <span id="battery-status" class="text-info"></span>
+        &nbsp;&nbsp;
         %if 'username' not in session:
-          <a href="/login" class="btn btn-link ${route('/login')}">
+          <a href="/login" class="btn btn-primary ${route('/login')}">
             <span class="glyphicon glyphicon-user"></span>&nbsp;登录
           </a>
         %else:
-          <form action="/logout" method="post" class="navbar-form">
+          <form action="/logout" method="post" style="display: inline-block">
             <button type="submit" class="btn btn-default">
               <span class="glyphicon glyphicon-off"></span>&nbsp;${session['username']|h}
             </button>

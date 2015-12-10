@@ -6,6 +6,7 @@ import os
 import cherrypy
 from mako.lookup import TemplateLookup
 import sqlite3
+import hashlib
 import math
 import markdown
 lookup_=TemplateLookup(directories=['templates'],input_encoding='utf-8',output_encoding='utf-8')
@@ -49,6 +50,42 @@ class Website:
             html=markdown.markdown(description,output_format='html5',lazy_ol=False)
             return lookup('problem.html').render(probtitle=title,subtitle=subtitle,acuser=acuser,alluser=alluser,\
                 description=html,memory=memory,time=allowtime)
+
+    @cherrypy.expose()
+    def login(self,username=None,password=None):
+        ha=lambda u,p: hashlib.sha384(('U "%s" --> P "%s"'%(u,p)).encode()).hexdigest()
+
+        if 'username' in cherrypy.session:
+            raise cherrypy.HTTPRedirect('/')
+        if not username:
+            return lookup('login.html').render()
+        elif not password:
+            db=sqlite3.connect(const.DBFILE)
+            cur=db.cursor()
+            cur.execute('select exists(select * from users where username=?)',[username])
+            return '登录' if cur.fetchone()[0] else '注册'
+        else:
+            db=sqlite3.connect(const.DBFILE)
+            cur=db.cursor()
+            cur.execute('select password from users where username=?',[username])
+            result=cur.fetchone()
+            if result: #login
+                if ha(username,password)==result[0]:
+                    cherrypy.session['username']=username
+                    raise cherrypy.HTTPRedirect('/')
+                else:
+                    return err('密码错误')
+            else: #signup
+                cur.execute('insert into users values (?,?)',[username,ha(username,password)])
+                db.commit()
+                cherrypy.session['username']=username
+                raise cherrypy.HTTPRedirect('/')
+
+    @cherrypy.expose()
+    def logout(self):
+        if 'username' in cherrypy.session:
+            del cherrypy.session['username']
+        raise cherrypy.HTTPRedirect('/')
 
 
 cherrypy.quickstart(Website(),'/',{
