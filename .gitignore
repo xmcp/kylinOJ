@@ -1,6 +1,8 @@
 /.idea/
 __pycache__/
 *.pyc
-vm_files/SDKRef.pdf
-vm_files/vboxshell.py
-db.sqlite
+/vm_files/SDKRef.pdf
+/vm_files/vboxshell.py
+/data/db.sqlite
+/data/problems
+/data/solutions

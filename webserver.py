@@ -87,7 +87,7 @@ class Website:
                 else:
                     return err('密码不正确')
             else: #signup
-                cur.execute('insert into users values (?,?)',[username,ha(username,password)])
+                cur.execute('insert into users values ()',[username,ha(username,password)])
                 db.commit()
                 cherrypy.session['username']=username
                 raise cherrypy.HTTPRedirect('/')
