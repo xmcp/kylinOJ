@@ -1,9 +1,8 @@
 #coding=utf-8
 import sqlite3
-import os
 import const
 
-db=sqlite3.connect(os.path.join('..',const.DBFILE))
+db=sqlite3.connect(const.DBFILE)
 cur=db.cursor()
 cur.executescript('''
 

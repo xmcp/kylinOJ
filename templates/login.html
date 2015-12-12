@@ -10,7 +10,7 @@
       if(username.val().trim())
         $.post('/login',{username:username.val()},function(data) {
           if (data.length<20) {
-            if(data.startsWith('reg')) {
+            if(data==='register') {
               $('#magic-title').text('欢迎加入 KylinOJ');
               magic_btn.text('注册').removeClass('btn-default btn-primary').addClass('btn-success');
             } else {
