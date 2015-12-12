@@ -10,6 +10,9 @@ import hashlib
 import math
 import markdown
 
+import mimetypes
+mimetypes.types_map['.woff']='application/x-font-wof'
+
 lookup_=TemplateLookup(directories=['templates'],input_encoding='utf-8',output_encoding='utf-8')
 def lookup(name):
     class _sub:
@@ -39,11 +42,11 @@ class Website:
         page=int(page)
         db=sqlite3.connect(const.DBFILE)
         cur=db.cursor()
-        if problemid is None:
+        if problemid is None: #list problem
             cur.execute('select count(*) from problems')
             count,*_=cur.fetchone()
             pages=math.ceil(count/20)
-            if page>pages or page<=0:
+            if page!=1 and (page>pages or page<=0):
                 return err('页码范围不正确')
 
             cur.execute('select id,title,subtitle,acuser,alluser from problems order by id asc limit ?,20',[(page-1)*20])
@@ -51,7 +54,23 @@ class Website:
             for problemid,title,subtitle,acuser,alluser in cur.fetchall():
                 result.append({'id':problemid,'title':title,'subtitle':subtitle,'acuser':acuser,'alluser':alluser})
             return lookup('problem_list.html').render(problems=result,curpage=page,pages=pages)
-        else:
+        elif problemid=='create':
+            if cherrypy.session.get('username')!='admin':
+                raise cherrypy.NotFound()
+            return lookup('edit_problem.html').\
+                render(id_=None,probtitle='',subtitle='',memory='',time='',description='## Description')
+        elif problemid=='edit':
+            if cherrypy.session.get('username')!='admin':
+                raise cherrypy.NotFound()
+            cur.execute('select id,title,subtitle,memory,time,description from problems where id=?',[page])
+            result=cur.fetchone()
+            if result:
+                id,title,subtitle,memory,time,description=result
+                return lookup('edit_problem.html').\
+                    render(id_=id,probtitle=title,subtitle=subtitle,memory=memory,time=time,description=description)
+            else:
+                return err('找不到题目')
+        else: #view problem
             cur.execute('select title,subtitle,acuser,alluser,description,memory,time from problems where id=?',[problemid])
             result=cur.fetchone()
             if result:
@@ -87,7 +106,8 @@ class Website:
                 else:
                     return err('密码不正确')
             else: #signup
-                cur.execute('insert into users values ()',[username,ha(username,password)]) #todo
+                cur.execute('insert into users (id,username,password,nick) values '\
+                    '(null,?,?,?)',[username,ha(username,password),username]) #todo
                 db.commit()
                 cherrypy.session['username']=username
                 raise cherrypy.HTTPRedirect('/')
@@ -105,6 +125,30 @@ class Website:
         if 'username' not in cherrypy.session:
             raise cherrypy.HTTPRedirect('/login')
         return code #todo
+    
+    @cherrypy.expose()
+    @cherrypy.tools.post()
+    def _edit_problem(self,id_,title,subtitle,description,memory,time):
+        if cherrypy.session.get('username')!='admin':
+            raise cherrypy.NotFound()
+        
+        try:
+            memory=int(memory)
+            time=int(time)
+            assert memory>0 and time>0
+        except ValueError:
+            return err('内存和时间限制参数错误')
+        id_=int(id_) if int(id_)!=-1 else None
+        db=sqlite3.connect(const.DBFILE)
+        cur=db.cursor()
+        if id_:
+            cur.execute('update problems set title=?,subtitle=?,description=?,memory=?,time=? where id=?',
+                [title,subtitle,description,memory,time,id_])
+        else:
+            cur.execute('insert into problems (id,title,subtitle,description,memory,time) values '\
+                '(?,?,?,?,?,?)',[id_,title,subtitle,description,memory,time])
+        db.commit()
+        raise cherrypy.HTTPRedirect('/problem/%d'%(id_ or cur.lastrowid))
 
 
 cherrypy.quickstart(Website(),'/',{

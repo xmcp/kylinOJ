@@ -55,6 +55,10 @@
       <li><a href="?page=${curpage+1}">下一页&nbsp;&nbsp;<span class="glyphicon glyphicon-step-forward"></span></a></li>
       <li><a href="?page=${pages}">第 ${pages} 页&nbsp;&nbsp;<span class="glyphicon glyphicon-forward"></span></a></li>
     %endif
+    %if session.get('username')=='admin':
+    <li><a href="/problem/create">
+      <span class="glyphicon glyphicon-edit"></span>&nbsp;新建
+    </a></li>
+  %endif
   </ul>
 </nav>
-

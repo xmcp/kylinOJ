@@ -16,8 +16,8 @@
 <div class="row">
   <div class="col-md-8"><div class="panel panel-default"><div class="panel-body">
     <div class="page-header yahei"><h1>
-        <a href="/problem"><span class="glyphicon glyphicon-circle-arrow-left"></span></a>
-        &nbsp;${probtitle|h}&nbsp;&nbsp;<small>${subtitle|h}</small>
+      <a href="/problem"><span class="glyphicon glyphicon-circle-arrow-left"></span></a>
+      &nbsp;${probtitle|h}&nbsp;&nbsp;<small>${subtitle|h}</small>
     </h1></div>
     <div class="yahei">${description}</div>
   </div></div></div>
@@ -38,9 +38,9 @@
         <span class="glyphicon glyphicon-cloud-upload"></span>&nbsp;&nbsp;提交代码
       </button>
       %if session['username']=='admin':
-        <button type="button" class="btn btn-warning full-width sub-btn">
+        <a type="button" class="btn btn-warning full-width sub-btn" href="/problem/edit/${id_|u}">
           <span class="glyphicon glyphicon-pencil"></span>&nbsp;&nbsp;编辑题目
-        </button>
+        </a>
       %endif
     %else:
       <a href="/login" class="btn btn-primary btn-lg full-width sub-btn">登录后方可提交代码</a>
@@ -84,6 +84,7 @@
         enableSnippets: false,
         enableLiveAutocompletion: false
     });
+    editor.setShowPrintMargin(false);
     $(window).on('beforeunload',function() {
       if(editor.getValue().trim())
         return "您编辑的代码还没有提交，离开此页面将放弃这些代码！";

@@ -1,0 +1,73 @@
+<%inherit file='base.html' />
+<%block name='title'>KylinOJ</%block>
+
+<style>
+  .sub-item {margin: 10px 0 10px;}
+  #editor {height: 300px;}
+</style>
+<script>
+  function real_submit() {
+    $('#real-description').val(editor.getValue());
+    $(window).off('beforeunload');
+    $('#real-form').submit();
+  }
+</script>
+
+<div class="panel panel-default"><div class="panel-body">
+  <div class="page-header yahei"><h1>
+    <a href="/problem"><span class="glyphicon glyphicon-circle-arrow-left"></span></a>
+    &nbsp;${'编辑题目 #%d'%id_ if id_ else '新建题目'}
+  </h1></div>
+  <form action="/_edit_problem" method="post" id="real-form">
+    <div class="row">
+      <div class="col-md-4">
+        <div class="input-group sub-item">
+          <span class="input-group-addon"><span class="glyphicon glyphicon-tree-conifer"></span></span>
+          <input type="text" class="form-control" name="title" placeholder="标题" required="required" value="${probtitle|entity}">
+        </div>
+        <div class="input-group sub-item">
+          <span class="input-group-addon"><span class="glyphicon glyphicon-tree-deciduous"></span></span>
+          <input type="text" class="form-control" name="subtitle" placeholder="副标题" value="${subtitle|entity}">
+        </div>
+        <div class="input-group sub-item">
+          <span class="input-group-addon"><span class="glyphicon glyphicon-inbox"></span></span>
+          <input type="number" class="form-control" name="memory" placeholder="内存限制 (MB)" required="required" value="${memory|entity}">
+        </div>
+        <div class="input-group sub-item">
+          <span class="input-group-addon"><span class="glyphicon glyphicon-time"></span></span>
+          <input type="number" class="form-control" name="time" placeholder="时间限制 (秒)" required="required" value="${time|entity}">
+        </div>
+        
+        <button type="button" onclick="real_submit()" class="btn btn-primary full-width">
+          <span class="glyphicon glyphicon-check"></span>&nbsp;保存
+        </button>
+      </div>
+      
+      <div class="col-md-8">
+        <pre class="full-width" id="editor">${description|h}</pre>
+      </div>
+      
+      <input type="hidden" name="id_" value="${id_ if id_ else -1|entity}">
+      <input type="hidden" id="real-description" name="description">
+    </div>
+  </form>
+</div></div>
+
+<script src="/static/ace/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="/static/ace/ext-language_tools.js"></script>
+<script>
+    ace.require("ace/ext/language_tools");
+    var editor = ace.edit("editor");
+    editor.setTheme("ace/theme/textmate");
+    editor.session.setMode("ace/mode/markdown");
+    editor.setOptions({
+        enableBasicAutocompletion: true,
+        enableSnippets: false,
+        enableLiveAutocompletion: false
+    });
+    editor.setShowPrintMargin(false);
+    $(window).on('beforeunload',function() {
+      if($('[name=title]').val().trim())
+        return "题目还没有保存，离开此页面将放弃这些改动！";
+    });
+</script>
