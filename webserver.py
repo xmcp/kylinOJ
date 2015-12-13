@@ -65,9 +65,9 @@ class Website:
             cur.execute('select id,title,subtitle,memory,time,description from problems where id=?',[page])
             result=cur.fetchone()
             if result:
-                id,title,subtitle,memory,time,description=result
+                id_,title,subtitle,memory,time,description=result
                 return lookup('edit_problem.html').\
-                    render(id_=id,probtitle=title,subtitle=subtitle,memory=memory,time=time,description=description)
+                    render(id_=id_,probtitle=title,subtitle=subtitle,memory=memory,time=time,description=description)
             else:
                 return err('找不到题目')
         else: #view problem
@@ -107,7 +107,7 @@ class Website:
                     return err('密码不正确')
             else: #signup
                 cur.execute('insert into users (id,username,password,nick) values '\
-                    '(null,?,?,?)',[username,ha(username,password),username]) #todo
+                    '(null,?,?,?)',[username,ha(username,password),username])
                 db.commit()
                 cherrypy.session['username']=username
                 raise cherrypy.HTTPRedirect('/')

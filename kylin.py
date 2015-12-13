@@ -116,6 +116,18 @@ class Kylin:
             with closing(gs.fileOpen(filename,2,4,0x755)) as handler:
                 handler.write(content.encode('utf-8','ignore'),1000)
 
+    def _readfile(self,user,passwd,filename):
+        if self.session.state==1:
+            self.session=self.mgr.openMachineSession(self.vm)
+
+        self.log('  === initializing gs')
+        with closing(self.session.console.guest.createSession(user,passwd,"","kylinOJ writefile session")) as gs:
+            while gs.status!=100:
+                time.sleep(.02)
+            self.log('  === reading')
+            with closing(gs.fileOpen(filename,1,1,0x755)) as handler:
+                return handler.read(1024*1024,1000)
+
     def restore(self):
         def _pwn():
             self.log('  === writing judger')
@@ -209,6 +221,7 @@ class MultiKylin:
             time.sleep(.25)
 
 if __name__=='__main__':
+    '''
     lock=threading.Lock()
     def wrapper(cnt):
         def callback(data):
@@ -228,3 +241,6 @@ if __name__=='__main__':
             [['1 2','3'],['4 5','9']], #datas
             wrapper(_)
         )
+            '''
+    kylin=Kylin(const.VMS[0],print if const.DEBUG else lambda *_:None)
+    kylin.restore()
