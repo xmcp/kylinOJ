@@ -1,6 +1,6 @@
 #coding=utf-8
 
-DEBUG=True
+DEBUG=False
 
 VMS=['JudgementVM','JudgementVM-2']
 VM_BASE_SNAPSHOT='JVM 1.2'

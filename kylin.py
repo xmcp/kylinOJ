@@ -12,6 +12,7 @@ import threading
 import vboxapi
 import pywintypes
 from contextlib import closing
+import queue
 
 def wait(sth):
     if sth is not None:
@@ -37,6 +38,10 @@ class Kylin:
         self.vm=self.vbox.findMachine(vm_name)
         self.session=self.mgr.getSessionObject(self.vbox)
         self.running=False
+
+    def __del__(self):
+        if self.session.state!=1:
+            wait(self.session.console.powerDown())
 
     def _boot(self):
         self.vm=self.vbox.findMachine(self.vm_name)
@@ -126,7 +131,7 @@ class Kylin:
                 time.sleep(.02)
             self.log('  === reading')
             with closing(gs.fileOpen(filename,1,1,0x755)) as handler:
-                return handler.read(1024*1024,1000)
+                return handler.read(1024*1024,1000).tobytes()
 
     def restore(self):
         def _pwn():
@@ -159,7 +164,7 @@ class Kylin:
         self._boot()
         _pwn()
 
-    def _real_judge(self,source,memlimit,timelimit,datas,callback):
+    def _real_judge(self,source,memlimit,timelimit,datas,callback): #mem in mb
         results=[]
         callback({'progress':'init'})
         self.restore()
@@ -174,17 +179,26 @@ class Kylin:
                 self.log('!!! errcode = %d'%code)
                 self.log('[STDOUT]\n%s\n[STDERR]\n%s'%(out,err))
                 return callback({'progress':'done','result':[Result.CE]})
+        except Exception as e:
+            self.log('!!! Uncaught Error: %r'%e)
+            return callback({'progress':'done','result':results+[Result.SB]})
 
-            len_datas=len(datas)
-            for pos,io in enumerate(datas):
+        len_datas=len(datas)
+        for pos,io in enumerate(datas):
+            try:
                 callback({'progress':'judging','result':results})
                 self.log('=== judging data %d/%d'%(pos+1,len_datas))
 
-                code,out,err=self._execute('root',const.VM_ROOT_PSW,'/root/judger',[memlimit*1024*1024,timelimit],timelimit+1,io[0])
+                code,out,err=self._execute('root',const.VM_ROOT_PSW,'/root/judger',[(memlimit+1)*1024*1024,timelimit+1],timelimit+2,io[0])
                 if const.DEBUG:
                     self.log('[ERRCODE] %d\n[STDOUT]\n%s\n[STDERR]\n%s'%(code,out,err))
+                lim=self._readfile('root',const.VM_ROOT_PSW,'/root/result.txt').decode(errors='ignore')
+                _,runtime,*_=lim.splitlines()
+                self.log('=== user program completed in %sus'%runtime)
 
-                if code and err.startswith('[JUDGER ERROR] '):
+                if int(runtime)/1000000>timelimit:
+                    results.append(Result.LE)
+                elif code and err.startswith('[JUDGER ERROR] '):
                     results.append(Result.SB)
                 elif code:
                     results.append(Result.RE)
@@ -196,32 +210,42 @@ class Kylin:
                     results.append(Result.PE)
                 else:
                     results.append(Result.WA)
-        except Exception as e:
-            self.log('!!! Uncaught Error: %r'%e)
-            return callback({'progress':'done','result':results+[Result.SB]})
-        else:
-            return callback({'progress':'done','result':results})
-        finally:
-            self.running=False
+            except Exception as e:
+                self.log('!!! Uncaught Error: %r'%e)
+                return callback({'progress':'done','result':results+[Result.SB]})
+        return callback({'progress':'done','result':results})
 
     def judge(self,*args):
+        def wrapper():
+            self._real_judge(*args)
+            self.running=False
+
         self.running=True
-        threading.Thread(target=self._real_judge,args=args).start()
+        threading.Thread(target=wrapper).start()
 
 class MultiKylin:
     def __init__(self,log):
         log('= initializing kylins')
+        self.log=log
         self.kylins=[Kylin(name,log) for name in const.VMS]
+        self.q=queue.Queue()
+        threading.Thread(target=self._worker).start()
 
-    def judge(self,*args):
+    def _worker(self):
+        self.log=print
         while True:
             for kylin in self.kylins:
                 if not kylin.running:
-                    return kylin.judge(*args)
-            time.sleep(.25)
+                    job=self.q.get()
+                    self.log('= got new job to run')
+                    kylin.judge(*job)
+                time.sleep(.1)
+
+    def judge(self,*args):
+        self.q.put(args)
 
 if __name__=='__main__':
-    '''
+
     lock=threading.Lock()
     def wrapper(cnt):
         def callback(data):
@@ -241,6 +265,7 @@ if __name__=='__main__':
             [['1 2','3'],['4 5','9']], #datas
             wrapper(_)
         )
-            '''
-    kylin=Kylin(const.VMS[0],print if const.DEBUG else lambda *_:None)
-    kylin.restore()
+
+    '''kylin=Kylin(const.VMS[0],print if const.DEBUG else lambda *_:None)
+    kylin.judge('#include<cstdio>\nint main(){puts("ok");return 0;}',1,2,[[None,'ok']],print)
+    del kylin'''
